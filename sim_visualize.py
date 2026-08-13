@@ -26,7 +26,7 @@ import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches
 from matplotlib.animation import FuncAnimation
 
-from sim_engine import ACTOR_LABEL, CARDS, run_simulation, precondition_scores
+from sim_engine import ACTOR_LABEL, CARDS, run_simulation, precondition_scores, precondition_breakdown
 
 ACTOR_COLOR = {"S": "#3B8AD4", "M": "#D85A30", "I": "#5DCAA5"}
 
@@ -78,8 +78,10 @@ def final_message(result, cfg, active_cards):
     score_line = ", ".join(f"{ACTOR_LABEL[a]} {scores[a]:.2f}" for a in ("S", "M", "I"))
 
     def cards_for(deck):
-        names = [CARDS[c]["label"] for c in active_cards if CARDS[c]["deck"] == deck]
-        return ", ".join(names) if names else "none directly -- the base rivalry math and public normalization alone were enough"
+        breakdown = precondition_breakdown(deck, active_cards, cfg.card_weights)
+        if not breakdown:
+            return "none directly -- the base rivalry math and public normalization alone were enough"
+        return ", ".join(f"{label} ({pct:.0f}%)" for label, val, pct in breakdown)
 
     precond_note = f"**Precondition score (active cards per actor):** {score_line}."
 
@@ -90,7 +92,8 @@ def final_message(result, cfg, active_cards):
                 f"{cfg.absorption_threshold*100:.0f}% outright-dominance threshold on its own. Public acceptance "
                 f"of {ACTOR_LABEL[w]} stood at {s['public_T']*100:.0f}% at that point.\n\n"
                 f"{precond_note}\n\n"
-                f"**Active conditions favoring {ACTOR_LABEL[w]}:** {cards_for(w)}.")
+                f"**Precondition breakdown for {ACTOR_LABEL[w]}** (share of {ACTOR_LABEL[w]}'s own score): "
+                f"{cards_for(w)}.")
 
     elif outcome["type"] == "duopoly":
         a, b = outcome["pair"]
@@ -103,7 +106,8 @@ def final_message(result, cfg, active_cards):
                 f"line**. This is the model's answer to whether two actors can co-dominate and marginalize the "
                 f"third without either one 'winning' alone: here, yes.\n\n"
                 f"{precond_note}\n\n"
-                f"**Active conditions in play:** {ACTOR_LABEL[a]} -- {cards_for(a)}. "
+                f"**Precondition breakdown** (share of each actor's own score): "
+                f"{ACTOR_LABEL[a]} -- {cards_for(a)}. "
                 f"{ACTOR_LABEL[b]} -- {cards_for(b)}.")
 
     else:
@@ -118,6 +122,8 @@ def final_message(result, cfg, active_cards):
                 f"collapsing into a winner or a two-way alliance. Public acceptance of the current leader was "
                 f"{s['public_T']*100:.0f}% at the end.\n\n"
                 f"{precond_note}\n\n"
+                f"**Precondition breakdown for {ACTOR_LABEL[w]}** (current leader, share of its own score): "
+                f"{cards_for(w)}.\n\n"
                 f"**Why it likely didn't converge:** either no actor holds more active preconditions than the "
                 f"others (so their structural scores cancel out, as here), or the active cards weren't stacked "
                 f"heavily enough on one side. Try stacking multiple cards onto a single actor (for an individual "

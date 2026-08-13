@@ -108,6 +108,34 @@ class SimConfig:
         self.rng = np.random.default_rng(seed)
 
 
+def precondition_breakdown(actor, active_cards, card_weights=None):
+    """For one actor's deck, returns [(card_label, contribution, pct_of_total)]
+    for every active card in that deck, sorted by contribution descending.
+    pct_of_total is that card's share of the actor's TOTAL precondition
+    score -- this is what lets the final result say 'Media Capture (58%),
+    Political Polarization (42%)' instead of just listing card names."""
+    card_weights = card_weights or {}
+    contribs = []
+    for c in active_cards:
+        if CARDS[c]["deck"] != actor:
+            continue
+        override = card_weights.get(c, 1.0)
+        if isinstance(override, dict):
+            edges = CARDS[c]["weights"].keys()
+            mults = [override.get(e, 1.0) for e in edges]
+            val = sum(mults) / len(mults)
+        else:
+            val = override
+        contribs.append((CARDS[c]["label"], val))
+    total = sum(v for _, v in contribs)
+    if total <= 0:
+        return [(label, val, 0.0) for label, val in contribs]
+    return sorted(
+        [(label, val, val / total * 100) for label, val in contribs],
+        key=lambda x: -x[1],
+    )
+
+
 def precondition_score(actor, active_cards, card_weights=None):
     """Sum of this actor's active cards' intensity (default 1.0 each if no
     override was given). Accepts the same two card_weights formats as
