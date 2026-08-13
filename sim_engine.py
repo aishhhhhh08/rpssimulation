@@ -77,9 +77,7 @@ class SimConfig:
                  drift_rate=0.08, lambda_base=None, network_type="watts_strogatz",
                  years=150, absorption_threshold=0.70, combo_threshold=0.90,
                  playback_interval_ms=500, precondition_weight=0.5,
-                 legitimacy_weight=0.3, card_weights=None,
-                 sustained_years=20, plurality_margin=0.10, plurality_floor=0.20,
-                 seed=None):
+                 legitimacy_weight=0.3, card_weights=None, seed=None):
         self.active_cards = active_cards or []
         self.n_agents = n_agents
         self.k = k
@@ -107,31 +105,6 @@ class SimConfig:
         # you make one card matter more than another, instead of every
         # active card counting as an equal flat unit.
         self.card_weights = card_weights or {}
-        # A THIRD, separate convergence tier, distinct from individual/duopoly
-        # absorption. Some actors never cross 70% (or 90% combined) but still
-        # hold a real, persistent structural lead -- e.g. a plurality that
-        # never gives way for decades. That pattern is a legitimate form of
-        # "de facto control" in the political-science sense (dominance over
-        # levers of power) even without crossing an abstract power-share
-        # threshold. This is checked ONLY if neither individual nor duopoly
-        # ever triggers, and requires the SAME actor to lead by at least
-        # plurality_margin (a fraction, e.g. 0.10 = 10 percentage points)
-        # over the second-place actor, continuously, for sustained_years in
-        # a row. These two defaults are neutral, chosen independently of any
-        # specific country case -- they should be justified (or recalibrated)
-        # against several historical cases, not tuned to make one case pass.
-        self.sustained_years = sustained_years
-        self.plurality_margin = plurality_margin
-        # ALSO require both rivals to individually fall below this floor
-        # (e.g. 0.20 = neither rival holds even a fifth of total power),
-        # sustained for the same window -- not just trailing the leader by
-        # plurality_margin. Without this, a case where the "leader" pulls
-        # ahead while both rivals still hold a meaningful ~20-30% each (a
-        # normal three-way spread, not a squeeze-out) gets misclassified as
-        # de facto capture. NOTE: this catches early false positives, but
-        # does not fully resolve long-horizon cases -- see run_simulation's
-        # docstring note on this.
-        self.plurality_floor = plurality_floor
         self.rng = np.random.default_rng(seed)
 
 
@@ -254,37 +227,6 @@ def classify_outcome(strengths, absorption_threshold, combo_threshold):
     return {"type": None}
 
 
-def check_sustained_plurality(history, sustained_years, plurality_margin, plurality_floor):
-    """Third convergence tier: has the SAME actor led by at least
-    plurality_margin over the second-place actor, AND kept BOTH rivals
-    below plurality_floor individually, continuously, for the last
-    sustained_years ticks? Returns None if not (yet) satisfied -- called
-    only when neither individual nor duopoly has triggered."""
-    if len(history) <= sustained_years:
-        return None
-    window = history[-sustained_years:]
-    leaders = [max(("S", "M", "I"), key=lambda k: h[k]) for h in window]
-    if len(set(leaders)) != 1:
-        return None
-    leader = leaders[0]
-    for h in window:
-        rivals = [h[a] for a in ("S", "M", "I") if a != leader]
-        second = max(rivals)
-        if h[leader] - second < plurality_margin:
-            return None
-        if max(rivals) >= plurality_floor:
-            return None
-    last = window[-1]
-    second = max(last[a] for a in ("S", "M", "I") if a != leader)
-    return {
-        "type": "sustained_plurality",
-        "leader": leader,
-        "share": last[leader],
-        "margin": last[leader] - second,
-        "public_T": last["public_T"],
-    }
-
-
 class PublicLayer:
     def __init__(self, cfg):
         self.cfg = cfg
@@ -362,10 +304,6 @@ def run_simulation(cfg, initial_strengths):
         history.append(dict(strengths, public_T=public_frac["T"]))
 
         outcome = classify_outcome(strengths, cfg.absorption_threshold, cfg.combo_threshold)
-        if outcome["type"] is None:
-            sp = check_sustained_plurality(history, cfg.sustained_years, cfg.plurality_margin, cfg.plurality_floor)
-            if sp is not None:
-                outcome = sp
         if outcome["type"] is not None:
             break
 

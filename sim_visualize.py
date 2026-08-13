@@ -106,35 +106,14 @@ def final_message(result, cfg, active_cards):
                 f"**Active conditions in play:** {ACTOR_LABEL[a]} -- {cards_for(a)}. "
                 f"{ACTOR_LABEL[b]} -- {cards_for(b)}.")
 
-    elif outcome["type"] == "sustained_plurality":
-        leader = outcome["leader"]
-        return (f"### Result: {ACTOR_LABEL[leader]} achieved sustained de facto control\n\n"
-                f"By year {year}, {ACTOR_LABEL[leader]} had led continuously for at least "
-                f"{cfg.sustained_years} years, holding a persistent margin of "
-                f"{outcome['margin']*100:.1f} percentage points over the second-place actor "
-                f"(threshold: {cfg.plurality_margin*100:.0f} points, sustained). {ACTOR_LABEL[leader]} never "
-                f"crossed the {cfg.absorption_threshold*100:.0f}% outright-win line and no pair ever reached "
-                f"{cfg.combo_threshold*100:.0f}% combined -- but a stable, uncontested plurality lead held for "
-                f"this long is a real and different kind of result: **structural/power dominance without a "
-                f"formal majority**, which is arguably closer to how real hybrid-regime capture looks than a "
-                f"clean 70% share ever would be.\n\n"
-                f"**Important, separate finding -- public legitimacy:** public acceptance of {ACTOR_LABEL[leader]} "
-                f"was {outcome['public_T']*100:.0f}% at this point. Power dominance and public legitimacy are "
-                f"tracked independently in this model, and they do not necessarily move together -- "
-                f"{'they appear to be aligned here' if outcome['public_T'] >= 0.5 else 'here they have clearly diverged: ' + ACTOR_LABEL[leader] + ' controls the most power while a majority of the public is NOT tolerating that dominance'}.\n\n"
-                f"{precond_note}\n\n"
-                f"**Active conditions favoring {ACTOR_LABEL[leader]}:** {cards_for(leader)}.")
-
     else:
         w = max(("S", "M", "I"), key=lambda k: s[k])
         leaders = [max(("S", "M", "I"), key=lambda k: h[k]) for h in history]
         switches = sum(1 for i in range(1, len(leaders)) if leaders[i] != leaders[i - 1])
         return (f"### Result: no convergence within {cfg.tick_horizon} years\n\n"
                 f"{ACTOR_LABEL[w]} ended with the largest share ({s[w]*100:.0f}%), but never crossed the "
-                f"{cfg.absorption_threshold*100:.0f}% individual threshold, no pair ever reached the "
-                f"{cfg.combo_threshold*100:.0f}% combined threshold, and no actor held a sustained "
-                f"{cfg.plurality_margin*100:.0f}-point lead for {cfg.sustained_years} consecutive years either. "
-                f"Leadership changed hands {switches} times "
+                f"{cfg.absorption_threshold*100:.0f}% individual threshold, and no pair ever reached the "
+                f"{cfg.combo_threshold*100:.0f}% combined threshold. Leadership changed hands {switches} times "
                 f"over the run -- consistent with the rock-paper-scissors cycle balancing itself out rather than "
                 f"collapsing into a winner or a two-way alliance. Public acceptance of the current leader was "
                 f"{s['public_T']*100:.0f}% at the end.\n\n"

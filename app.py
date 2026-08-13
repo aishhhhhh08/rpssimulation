@@ -84,15 +84,6 @@ with st.sidebar:
                             help="How much active preconditions push the rivalry itself.")
     legit_w = st.slider("Legitimacy wt", 0.0, 1.0, 0.3, step=0.05,
                           help="How much active preconditions shift public opinion, independent of raw power.")
-    st.caption(
-        "Sustained plurality control: a third outcome tier for an actor that "
-        "never hits the thresholds above but holds an uncontested lead for a "
-        "long stretch -- closer to real-world 'de facto capture.'"
-    )
-    sustained_years = st.slider("Sustained years", 5, 100, 20, step=5)
-    plurality_margin = st.slider("Plurality margin (points)", 0.02, 0.40, 0.10, step=0.01)
-    plurality_floor = st.slider("Plurality floor (rivals must stay below)", 0.05, 0.45, 0.20, step=0.01,
-                                  help="Both rivals must individually stay below this share, not just trail the leader.")
 
     run_button = st.button("\u25b6 Run simulation", type="primary", use_container_width=True)
 
@@ -110,9 +101,7 @@ if run_button:
         active_cards=active_cards, n_agents=n_agents, eta=eta, drift_rate=drift_rate,
         years=years, absorption_threshold=indiv_thresh, combo_threshold=combo_thresh,
         playback_interval_ms=speed_ms, precondition_weight=precond_w,
-        legitimacy_weight=legit_w, card_weights=card_weights,
-        sustained_years=sustained_years, plurality_margin=plurality_margin,
-        plurality_floor=plurality_floor, seed=int(seed),
+        legitimacy_weight=legit_w, card_weights=card_weights, seed=int(seed),
     )
 
     st.write(f"**Active cards:** {', '.join(CARDS[c]['label'] for c in active_cards) if active_cards else '(none)'}")
